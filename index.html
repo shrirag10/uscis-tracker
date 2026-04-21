@@ -1349,18 +1349,11 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ---------- Visitor counter (silent) ----------
-const __visitPromise = fetch('https://api.countapi.xyz/hit/artemis010/uscis-tracker')
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d => d.value)
-  .catch(() =>
-    fetch('https://api.counterapi.dev/v1/artemis010-uscis/visits/up')
-      .then(r => r.json())
-      .then(d => d.value ?? d.count ?? null)
-      .catch(() => null)
-  );
+// ---------- Visitor counter via GitHub traffic API ----------
+const __GH_REPO  = 'shrirag10/uscis-tracker';
+const __GH_TOKEN_KEY = '__uscis_gh_pat';
 
-function __showToast(msg) {
+function __showToast(msg, color) {
   if (!document.querySelector('#__vc_style')) {
     const s = document.createElement('style');
     s.id = '__vc_style';
@@ -1371,14 +1364,69 @@ function __showToast(msg) {
   toast.textContent = msg;
   toast.style.cssText = `
     position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%);
-    background:#0f172a; border:1px solid #334155; color:#38bdf8;
+    background:#0f172a; border:1px solid #334155; color:${color || '#38bdf8'};
     font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:600;
     padding:0.55rem 1.25rem; border-radius:999px; z-index:9999;
     box-shadow:0 4px 24px rgba(0,0,0,0.5); white-space:nowrap;
     animation:__fadeUp 0.2s ease;
   `;
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function __showTokenPrompt() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:10000;
+    display:flex; align-items:center; justify-content:center; padding:1rem;
+  `;
+  overlay.innerHTML = `
+    <div style="background:#111827; border:1px solid #334155; border-radius:10px; padding:1.5rem; max-width:420px; width:100%; font-family:'JetBrains Mono',monospace;">
+      <div style="font-size:0.8rem; color:#64748b; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.06em;">One-time setup</div>
+      <div style="font-size:0.85rem; color:#e2e8f0; margin-bottom:1rem; line-height:1.5;">
+        Create a GitHub PAT at<br>
+        <span style="color:#38bdf8;">Settings → Developer settings → Fine-grained tokens</span><br>
+        with <b>Repository traffic → Read</b> on this repo.
+      </div>
+      <input id="__pat_input" type="password" placeholder="github_pat_..." autocomplete="off" style="
+        width:100%; background:#0a0e17; border:1px solid #334155; border-radius:6px;
+        color:#38bdf8; font-family:'JetBrains Mono',monospace; font-size:0.8rem;
+        padding:0.6rem 0.75rem; outline:none; margin-bottom:0.75rem;
+      "/>
+      <div style="display:flex; gap:0.5rem;">
+        <button id="__pat_save" style="flex:1; background:#38bdf8; color:#0a0e17; border:none; border-radius:6px; padding:0.6rem; font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:700; cursor:pointer;">Save & fetch</button>
+        <button id="__pat_cancel" style="background:transparent; color:#64748b; border:1px solid #1e293b; border-radius:6px; padding:0.6rem 1rem; font-family:'JetBrains Mono',monospace; font-size:0.8rem; cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('__pat_input').focus();
+  document.getElementById('__pat_cancel').onclick = () => overlay.remove();
+  document.getElementById('__pat_save').onclick = () => {
+    const token = document.getElementById('__pat_input').value.trim();
+    if (!token) return;
+    localStorage.setItem(__GH_TOKEN_KEY, token);
+    overlay.remove();
+    __fetchTraffic(token);
+  };
+}
+
+async function __fetchTraffic(token) {
+  __showToast('fetching…', '#64748b');
+  try {
+    const r = await fetch(`https://api.github.com/repos/${__GH_REPO}/traffic/views`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (r.status === 401 || r.status === 403) {
+      localStorage.removeItem(__GH_TOKEN_KEY);
+      __showToast('bad token — cleared, try again', '#f87171');
+      return;
+    }
+    const data = await r.json();
+    __showToast(`${data.uniques} unique · ${data.count} views (14d)`);
+  } catch {
+    __showToast('network error', '#f87171');
+  }
 }
 
 let __footerClicks = 0, __footerTimer;
@@ -1388,12 +1436,9 @@ function __footerTap() {
   __footerTimer = setTimeout(() => { __footerClicks = 0; }, 500);
   if (__footerClicks >= 3) {
     __footerClicks = 0;
-    __visitPromise.then(count => {
-      const msg = count != null
-        ? `${Number(count).toLocaleString()} visitor${count !== 1 ? 's' : ''}`
-        : 'counter unavailable';
-      __showToast(msg);
-    });
+    const token = localStorage.getItem(__GH_TOKEN_KEY);
+    if (token) __fetchTraffic(token);
+    else __showTokenPrompt();
   }
 }
 </script>
