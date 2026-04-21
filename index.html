@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USCIS Silent Update Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface-2: #1a2235;
+    --border: #1e293b;
+    --border-accent: #334155;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --accent: #38bdf8;
+    --accent-dim: rgba(56, 189, 248, 0.1);
+    --green: #34d399;
+    --green-dim: rgba(52, 211, 153, 0.1);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.1);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.1);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167, 139, 250, 0.1);
+    --radius: 8px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    line-height: 1.5;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(167, 139, 250, 0.05), transparent);
+  }
+
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.35rem;
+  }
+
+  h1 .accent { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .privacy-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    font-family: var(--mono);
+    transition: all 0.15s;
+  }
+  .privacy-toggle:hover { border-color: var(--border-accent); color: var(--text); }
+  .privacy-toggle.active { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+  .instructions {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .instructions summary {
+    cursor: pointer;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.9rem;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .instructions summary::-webkit-details-marker { display: none; }
+  .instructions[open] summary { margin-bottom: 0.75rem; }
+
+  .instructions ol { margin-left: 1.2rem; margin-top: 0.5rem; }
+  .instructions li { margin-bottom: 0.4rem; }
+
+  .url-box {
+    background: var(--bg);
+    border: 1px solid var(--border-accent);
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin: 0.5rem 0;
+    word-break: break-all;
+    cursor: pointer;
+    user-select: all;
+  }
+
+  .receipt-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .receipt-display .label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    font-family: var(--mono);
+  }
+  .receipt-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    outline: none;
+    min-width: 0;
+    caret-color: var(--accent);
+  }
+  .receipt-input::placeholder { color: var(--border-accent); font-weight: 400; }
+  .receipt-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 0.75rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .parse-bar {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+
+  button {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: #7dd3fc; transform: translateY(-1px); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border-accent);
+    transform: none;
+  }
+
+  .btn-danger { color: var(--red); border-color: rgba(248, 113, 113, 0.3); }
+  .btn-danger:hover:not(:disabled) { background: var(--red-dim); color: var(--red); }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .status-dot.success { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  .ts-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .ts-banner .label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.25rem; }
+  .ts-banner .value { font-family: var(--mono); font-size: 1rem; font-weight: 600; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .summary-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    text-align: center;
+  }
+  .summary-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    font-weight: 700;
+  }
+  .summary-value {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .summary-value .unit {
+    font-size: 0.6rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 0.25rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .card h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+  }
+  .card.amber-accent { border-color: var(--amber); }
+  .card.amber-accent h3 { color: var(--amber); }
+
+  .kv-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-row .k { color: var(--text-muted); }
+  .kv-row .v { font-family: var(--mono); font-weight: 500; }
+
+  .flag-row {
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .flag-row:last-child { border-bottom: none; }
+  .flag-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .flag-row-label { font-weight: 500; }
+  .flag-row-value { font-family: var(--mono); font-weight: 600; }
+  .flag-row-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    font-family: var(--sans);
+  }
+  .flag-row-key {
+    font-size: 0.65rem;
+    color: var(--border-accent);
+    margin-top: 0.1rem;
+    font-family: var(--mono);
+  }
+  .flag-true { color: var(--green); }
+  .flag-false { color: var(--text-muted); }
+
+  .event-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 0.85rem;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .event-row:last-child { border-bottom: none; }
+  .event-code {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.22rem 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .code-positive { background: var(--green-dim); color: var(--green); }
+  .code-negative { background: var(--red-dim); color: var(--red); }
+  .code-neutral  { background: var(--accent-dim); color: var(--accent); }
+  .code-process  { background: var(--purple-dim); color: var(--purple); }
+  .code-warn     { background: var(--amber-dim); color: var(--amber); }
+  .code-default  { background: var(--surface-2); color: var(--text-muted); }
+  .event-label { font-size: 0.8rem; color: var(--text); }
+  .event-time { font-family: var(--mono); font-size: 0.74rem; color: var(--text-muted); white-space: nowrap; }
+
+  .section { margin-bottom: 1.5rem; }
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-title .count {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-family: var(--mono);
+  }
+
+  .diff-card {
+    background: var(--amber-dim);
+    border: 1px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .diff-card.clean { background: var(--green-dim); border-color: var(--green); }
+  .diff-card h3 { margin-bottom: 0.5rem; font-size: 0.9rem; }
+  .diff-card.clean h3 { color: var(--green); }
+  .diff-card:not(.clean) h3 { color: var(--amber); }
+  .diff-card ul { list-style: none; margin: 0; }
+  .diff-card li {
+    padding: 0.35rem 0;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  .timeline {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+  }
+  .tl-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    position: relative;
+  }
+  .tl-entry:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 28px;
+    bottom: -8px;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    margin-top: 6px;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .tl-dot.current { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .tl-dot.silent { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-dim); }
+  .tl-dot.changed { background: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
+
+  .tl-content { flex: 1; min-width: 0; }
+  .tl-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.2rem;
+  }
+  .tl-ts {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .tl-badge {
+    padding: 0.12rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+  .badge-silent { background: var(--amber-dim); color: var(--amber); }
+  .badge-event { background: var(--accent-dim); color: var(--accent); }
+  .badge-transfer { background: var(--red-dim); color: var(--red); }
+  .badge-biz { background: var(--green-dim); color: var(--green); }
+  .badge-offhrs { background: var(--surface-2); color: var(--text-muted); }
+  .tl-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+  .watched-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .watched-row:last-child { border-bottom: none; }
+  .watched-label { color: var(--text-muted); }
+  .watched-status {
+    font-family: var(--mono);
+    color: var(--green);
+    font-size: 0.72rem;
+    white-space: nowrap;
+    margin-left: 1rem;
+  }
+  .watched-desc { font-size: 0.7rem; color: var(--border-accent); margin-top: 0.2rem; }
+
+  .raw-json {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  details.collapse-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+  details.collapse-section summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    list-style: none;
+  }
+  details.collapse-section summary::-webkit-details-marker { display: none; }
+  details.collapse-section[open] summary { margin-bottom: 0.75rem; color: var(--text); font-weight: 600; }
+
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .footer-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .privacy-note {
+    background: var(--surface);
+    border: 1px dashed var(--border-accent);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+  .privacy-note strong { color: var(--green); }
+
+  @media (max-width: 600px) {
+    .event-row { grid-template-columns: 70px 1fr; }
+    .event-time { grid-column: 1 / -1; padding-left: 82px; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>USCIS <span class="accent">Silent Update</span> Tracker</h1>
+      <div class="subtitle">Detect timestamp changes and hidden case activity from the internal API</div>
+    </div>
+    <div class="privacy-toggle" id="privacy-toggle" onclick="togglePrivacy()">
+      <span id="privacy-icon">👁</span>
+      <span id="privacy-label">Mask receipt</span>
+    </div>
+  </div>
+
+  <div class="privacy-note">
+    <strong>Local-only:</strong> All snapshots stay in your browser's localStorage. Nothing is uploaded or transmitted.
+  </div>
+
+  <div class="receipt-display">
+    <span class="label">Receipt #</span>
+    <input
+      id="receipt-input"
+      class="receipt-input"
+      type="text"
+      placeholder="e.g. IOE1234567890"
+      autocomplete="off"
+      spellcheck="false"
+      oninput="onReceiptInput()"
+    />
+    <span class="receipt-hint" id="receipt-hint">enter to begin</span>
+  </div>
+
+  <details class="instructions">
+    <summary>
+      <span>How to use</span>
+      <span style="color: var(--text-muted); font-family: var(--mono);">[show]</span>
+    </summary>
+    <ol>
+      <li>Enter your receipt number above (e.g. <code style="font-family:var(--mono);color:var(--accent);">IOE1234567890</code>).</li>
+      <li>Log into <a href="https://my.uscis.gov" target="_blank" style="color:var(--accent)">my.uscis.gov</a> in your browser.</li>
+      <li>In a new tab, open this URL (updates as you type your receipt number above — click to copy):</li>
+    </ol>
+    <div class="url-box" id="api-url-box" onclick="copyApiUrl(this)" title="Click to copy">https://my.uscis.gov/account/case-service/api/cases/<span id="url-receipt-slot" style="opacity:0.45;">[RECEIPT_NUMBER]</span></div>
+    <ol start="4">
+      <li>Copy the entire JSON response.</li>
+      <li>Paste it below and click <strong>Parse</strong>.</li>
+      <li>Each parse saves a snapshot. Next time you paste, the tracker diffs against the previous snapshot and flags silent updates.</li>
+    </ol>
+  </details>
+
+  <details open style="margin-bottom: 1rem;">
+    <summary style="color: var(--text-muted); font-size: 0.82rem; cursor: pointer; padding: 0.25rem 0;">Paste API JSON ▼</summary>
+    <textarea id="raw-input" rows="8" style="margin-top:0.5rem; font-size:0.78rem; resize:vertical;" placeholder='Paste the JSON response from the API URL here...'></textarea>
+    <div class="parse-bar">
+      <button id="parse-btn" onclick="parseRawJson()" disabled>Parse</button>
+    </div>
+  </details>
+
+  <div id="status" style="display:none;" class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text"></span>
+  </div>
+
+  <div id="results"></div>
+
+  <div class="footer-controls" id="footer-controls" style="display:none;">
+    <button class="btn-secondary" onclick="exportHistory()">Export history (JSON)</button>
+    <button class="btn-secondary btn-danger" onclick="clearCurrentReceipt()">Clear snapshots</button>
+  </div>
+</div>
+
+<script>
+let RECEIPT = '';
+const STORAGE_KEY = 'uscis_tracker_history';
+const PRIVACY_KEY = 'uscis_tracker_privacy';
+const LAST_RECEIPT_KEY = 'uscis_tracker_last_receipt';
+let privacyMode = localStorage.getItem(PRIVACY_KEY) === '1';
+
+// ---------- Event code dictionary ----------
+const EVENT_LABELS = {
+  'PA':   'Payment Accepted',
+  'PAA':  'Payment Authorization Approved',
+  'IAF':  'Initial Acceptance of Filing',
+  'IMAG': 'Biometrics Scheduled / Notice Generated',
+  'FTA0': 'File Touched / Under Review',
+  'FTA1': 'File Accessed (Secondary Review)',
+  'HAP':  'Biometrics Appointment Completed',
+  'H008': 'Case Approved',
+  'H016': 'Case Denied',
+  'IKA':  'Request for Evidence (RFE)',
+  'HA':   'RFE Response Received',
+  'NOID': 'Notice of Intent to Deny',
+  'LED':  'Card Delivered',
+  'LEE':  'Card Picked Up by USPS',
+  'LUD':  'Card Was Mailed',
+  'CPO':  'Card Was Produced',
+  'NOTICE': 'Notice generated',
+  'APPT': 'Appointment scheduled'
+};
+
+function getCodeClass(code) {
+  if (!code) return 'code-default';
+  if (code === 'H008' || code === 'HAP' || code.startsWith('LE') || code === 'CPO' || code === 'LUD') return 'code-positive';
+  if (code === 'H016' || code === 'NOID') return 'code-negative';
+  if (code === 'IKA' || code === 'HA') return 'code-warn';
+  if (code.startsWith('FTA') || code === 'NOTICE' || code === 'APPT') return 'code-neutral';
+  if (code === 'PA' || code === 'PAA' || code === 'IAF' || code === 'IMAG') return 'code-process';
+  return 'code-default';
+}
+
+// ---------- Receipt input ----------
+function onReceiptInput() {
+  const val = document.getElementById('receipt-input').value.trim().toUpperCase();
+  RECEIPT = val;
+
+  // Update the API URL display
+  const slot = document.getElementById('url-receipt-slot');
+  const box = document.getElementById('api-url-box');
+  if (val) {
+    slot.textContent = val;
+    slot.style.opacity = '1';
+    slot.style.color = 'var(--accent)';
+    box.title = 'Click to copy';
+  } else {
+    slot.textContent = '[RECEIPT_NUMBER]';
+    slot.style.opacity = '0.45';
+    slot.style.color = '';
+  }
+
+  // Enable parse button only when receipt is set
+  document.getElementById('parse-btn').disabled = !val;
+
+  // Persist last used receipt (not sensitive — stays local)
+  if (val) {
+    localStorage.setItem(LAST_RECEIPT_KEY, val);
+    updateReceiptHint();
+    // Auto-render last snapshot for this receipt if it exists
+    const prev = getPrevSnapshot();
+    if (prev) {
+      const fields = extractFields(prev.data);
+      renderResults(fields, prev.data, []);
+      setStatus('success', `Loaded last snapshot from ${new Date(prev.checked_at).toLocaleString()}`);
+      document.getElementById('footer-controls').style.display = 'flex';
+    } else {
+      document.getElementById('results').innerHTML = '';
+      document.getElementById('footer-controls').style.display = 'none';
+      const bar = document.getElementById('status');
+      bar.style.display = 'none';
+    }
+  } else {
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('footer-controls').style.display = 'none';
+    document.getElementById('receipt-hint').textContent = 'enter to begin';
+  }
+}
+
+function updateReceiptHint() {
+  const snaps = getAllSnapshots();
+  const hint = document.getElementById('receipt-hint');
+  if (!RECEIPT) { hint.textContent = 'enter to begin'; return; }
+  if (snaps.length === 0) { hint.textContent = 'no snapshots yet'; return; }
+  hint.textContent = `${snaps.length} snapshot${snaps.length !== 1 ? 's' : ''}`;
+}
+
+function copyApiUrl(el) {
+  const url = 'https://my.uscis.gov/account/case-service/api/cases/' + RECEIPT;
+  if (!RECEIPT) {
+    alert('Enter your receipt number first.');
+    return;
+  }
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = el.innerHTML;
+    el.textContent = '✓ Copied!';
+    setTimeout(() => { el.innerHTML = orig; }, 1000);
+  });
+}
+
+// ---------- Privacy mode ----------
+function togglePrivacy() {
+  privacyMode = !privacyMode;
+  localStorage.setItem(PRIVACY_KEY, privacyMode ? '1' : '0');
+  applyPrivacyUI();
+  const last = window.__lastRender;
+  if (last) renderResults(last.fields, last.data, last.changes);
+}
+
+function applyPrivacyUI() {
+  const toggle = document.getElementById('privacy-toggle');
+  const icon = document.getElementById('privacy-icon');
+  const label = document.getElementById('privacy-label');
+  const input = document.getElementById('receipt-input');
+  if (privacyMode) {
+    toggle.classList.add('active');
+    icon.textContent = '🙈';
+    label.textContent = 'Receipt hidden';
+    input.type = 'password';
+  } else {
+    toggle.classList.remove('active');
+    icon.textContent = '👁';
+    label.textContent = 'Mask receipt';
+    input.type = 'text';
+  }
+}
+
+function maskReceipt(r) {
+  if (!r) return '';
+  if (!privacyMode) return r;
+  if (r.length <= 5) return '***';
+  return r.slice(0, 3) + '•'.repeat(Math.max(0, r.length - 5)) + r.slice(-2);
+}
+
+// ---------- Storage ----------
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function saveSnapshot(rawData) {
+  if (!RECEIPT) return false;
+  const data = unwrap(rawData);
+  const history = getHistory();
+  if (!history[RECEIPT]) history[RECEIPT] = [];
+  const prev = history[RECEIPT].at(-1);
+  const prevInner = prev ? unwrap(prev.data) : null;
+  const prevTs = prevInner?.updatedAtTimestamp || prevInner?.updatedAt;
+  const currTs = data.updatedAtTimestamp || data.updatedAt;
+  const isDupe = prev && prevTs === currTs
+    && prevInner?.events?.length === data.events?.length
+    && (prevInner?.documents||[]).length === (data.documents||[]).length
+    && (prevInner?.notices||[]).length === (data.notices||[]).length;
+  if (isDupe) {
+    prev.last_checked = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    return false;
+  }
+  history[RECEIPT].push({ checked_at: new Date().toISOString(), data });
+  if (history[RECEIPT].length > 100) history[RECEIPT] = history[RECEIPT].slice(-100);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  return true;
+}
+
+function getPrevSnapshot() {
+  if (!RECEIPT) return null;
+  const history = getHistory();
+  const arr = history[RECEIPT];
+  if (arr && arr.length > 0) return arr[arr.length - 1];
+  return null;
+}
+
+function getAllSnapshots() {
+  if (!RECEIPT) return [];
+  return getHistory()[RECEIPT] || [];
+}
+
+// ---------- Extract + diff ----------
+function unwrap(data) {
+  if (data && typeof data === 'object' && data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+    return data.data;
+  }
+  if (data && data.caseStatusResponse) return data.caseStatusResponse;
+  return data;
+}
+
+function extractFields(rawData) {
+  const data = unwrap(rawData);
+  const f = {};
+  ['updatedAt','updatedAtTimestamp','receivedDate','lastUpdatedDate','createdDate',
+   'submissionDate','submissionTimestamp'].forEach(k => {
+    if (data[k] !== undefined) f[k] = data[k];
+  });
+  ['ackedByAdjudicatorAndCms','areAllGroupMembersAuthorizedForTravel',
+   'areAllGroupStatusesComplete','closed','actionRequired','nonElisPaperFiled',
+   'isPremiumProcessed','cmsFailure','noticeMailingPrefIndicator','docMailingPrefIndicator']
+    .forEach(k => { if (data[k] !== undefined) f[k] = data[k]; });
+  ['statusText','formType','formName','serviceCenter','estimatedTimeRange',
+   'applicantName','elisChannelType','receiptNumber']
+    .forEach(k => { if (data[k] !== undefined) f[k] = data[k]; });
+
+  f.events = Array.isArray(data.events) ? data.events.map(e => ({
+    code: e.eventCode || e.code || '?',
+    timestamp: e.eventTimestamp || e.createdAtTimestamp || e.updatedAtTimestamp
+            || e.eventDateTime || e.createdAt || e.timestamp || '?',
+    description: e.description || '',
+    eventId: e.eventId || ''
+  })) : [];
+
+  f.notices = Array.isArray(data.notices) ? data.notices.map(n => ({
+    letterId: n.letterId || '',
+    actionType: n.actionType || '',
+    generationDate: n.generationDate || '',
+    appointmentDateTime: n.appointmentDateTime || ''
+  })) : [];
+
+  f.documents = Array.isArray(data.documents) ? data.documents : [];
+  f.evidenceRequests = Array.isArray(data.evidenceRequests) ? data.evidenceRequests : [];
+  f.concurrentCases = Array.isArray(data.concurrentCases) ? data.concurrentCases : [];
+  f.addendums = Array.isArray(data.addendums) ? data.addendums : [];
+
+  if (!f.statusText) {
+    if (f.closed) f.statusText = 'Closed';
+    else if (f.evidenceRequests && f.evidenceRequests.length) f.statusText = 'RFE issued';
+    else if (f.actionRequired) f.statusText = 'Action required';
+    else if (f.areAllGroupStatusesComplete) f.statusText = 'All statuses complete';
+    else if (f.ackedByAdjudicatorAndCms) f.statusText = 'Acknowledged by adjudicator';
+    else f.statusText = 'Pending';
+    if (f.isPremiumProcessed) f.statusText += ' (Premium)';
+  }
+
+  return f;
+}
+
+function diffSnapshots(prev, curr) {
+  const changes = [];
+  if (!prev || !prev.data) return changes;
+  const p = extractFields(prev.data);
+
+  ['updatedAt','updatedAtTimestamp','lastUpdatedDate'].forEach(k => {
+    if (p[k] && curr[k] && p[k] !== curr[k]) {
+      changes.push({ type: 'timestamp', text: `${k}: ${p[k]} → ${curr[k]}` });
+    }
+  });
+
+  ['ackedByAdjudicatorAndCms','closed','actionRequired','areAllGroupStatusesComplete','nonElisPaperFiled','isPremiumProcessed']
+    .forEach(k => {
+      if (p[k] !== curr[k] && curr[k] !== undefined) {
+        changes.push({ type: 'flag', text: `${k}: ${p[k]} → ${curr[k]}` });
+      }
+    });
+
+  if (p.statusText !== curr.statusText && curr.statusText) {
+    changes.push({ type: 'status', text: `Status: "${p.statusText}" → "${curr.statusText}"` });
+  }
+
+  if (p.serviceCenter !== curr.serviceCenter && curr.serviceCenter) {
+    changes.push({ type: 'transfer', text: `Service center: ${p.serviceCenter || 'none'} → ${curr.serviceCenter}` });
+  }
+
+  const oldSet = new Set((p.events || []).map(e => e.code + '|' + e.timestamp));
+  (curr.events || []).forEach(e => {
+    if (!oldSet.has(e.code + '|' + e.timestamp)) {
+      changes.push({ type: 'event', text: `New event: ${e.code} (${EVENT_LABELS[e.code] || '?'}) at ${formatTs(e.timestamp)}` });
+    }
+  });
+
+  ['documents','notices','evidenceRequests','concurrentCases','addendums'].forEach(k => {
+    const oldLen = (p[k] || []).length;
+    const newLen = (curr[k] || []).length;
+    if (newLen > oldLen) changes.push({ type: 'array', text: `${k}: ${oldLen} → ${newLen} (+${newLen - oldLen})` });
+    else if (newLen < oldLen) changes.push({ type: 'array', text: `${k}: ${oldLen} → ${newLen} (-${oldLen - newLen})` });
+  });
+
+  return changes;
+}
+
+// ---------- Helpers ----------
+function isBizHours(tsStr) {
+  if (!tsStr) return false;
+  const d = new Date(tsStr);
+  const etHour = (d.getUTCHours() - 4 + 24) % 24;
+  const etDay = d.getUTCDay();
+  return etDay >= 1 && etDay <= 5 && etHour >= 9 && etHour < 17;
+}
+
+function daysBetween(a, b) {
+  try { return Math.floor((new Date(b) - new Date(a)) / 86400000); }
+  catch { return '?'; }
+}
+
+function bizDaysBetween(startStr, endStr) {
+  try {
+    let start = new Date(startStr);
+    let end = new Date(endStr);
+    start = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+    end = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+    let count = 0;
+    const cur = new Date(start);
+    while (cur < end) {
+      cur.setUTCDate(cur.getUTCDate() + 1);
+      const day = cur.getUTCDay();
+      if (day !== 0 && day !== 6) count++;
+    }
+    return count;
+  } catch { return '?'; }
+}
+
+function addBizDays(startStr, numDays) {
+  try {
+    let d = new Date(startStr);
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    let added = 0;
+    while (added < numDays) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      const day = d.getUTCDay();
+      if (day !== 0 && day !== 6) added++;
+    }
+    return d.toISOString();
+  } catch { return null; }
+}
+
+function formatTs(ts) {
+  if (!ts) return '—';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  } catch { return ts; }
+}
+
+function formatDate(ts) {
+  if (!ts) return '—';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch { return ts; }
+}
+
+function setStatus(type, msg) {
+  const bar = document.getElementById('status');
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  bar.style.display = 'flex';
+  dot.className = 'status-dot ' + type;
+  text.textContent = msg;
+}
+
+// ---------- Flag descriptions ----------
+const FLAG_INFO = {
+  'ackedByAdjudicatorAndCms': { label: 'Adjudicator Acknowledged', desc: 'An officer has the case in the case management system. True is a late-stage signal, decision may be close.' },
+  'areAllGroupMembersAuthorizedForTravel': { label: 'Travel Authorized', desc: 'Group members (concurrent filings) cleared for travel. Positive when true.' },
+  'isPremiumProcessed': { label: 'Premium Processing', desc: 'Case flagged for premium processing. USCIS should act within 30 business days.' },
+  'closed': { label: 'Case Closed', desc: 'Final decision issued. False means still pending.' },
+  'actionRequired': { label: 'Action Required', desc: 'USCIS needs something from you (e.g. RFE). False means nothing on your end.' },
+  'cmsFailure': { label: 'CMS Failure', desc: 'Internal system error flag. True indicates a backend issue.' },
+  'areAllGroupStatusesComplete': { label: 'All Group Statuses Complete', desc: 'All linked cases decided. True means the whole group is resolved.' },
+  'nonElisPaperFiled': { label: 'Paper Action Filed', desc: 'Paper-based action taken outside the electronic system.' }
+};
+
+function isGoodFlag(k, v) {
+  const goodTrue = ['ackedByAdjudicatorAndCms','areAllGroupMembersAuthorizedForTravel','isPremiumProcessed','areAllGroupStatusesComplete'];
+  const goodFalse = ['closed','actionRequired','cmsFailure','nonElisPaperFiled'];
+  if (goodTrue.includes(k)) return v === true;
+  if (goodFalse.includes(k)) return v === false;
+  return false;
+}
+
+const ARRAY_INFO = {
+  'documents':        { label: 'Documents', empty: 'No documents posted yet. Approval notices and RFEs appear here before the status page updates.' },
+  'notices':          { label: 'Notices', empty: 'No notices.' },
+  'evidenceRequests': { label: 'Evidence Requests', empty: 'No RFEs.' },
+  'concurrentCases':  { label: 'Concurrent Cases', empty: 'No linked concurrent filings.' },
+  'addendums':        { label: 'Addendums', empty: 'No addendums.' }
+};
+
+// ---------- Render ----------
+function renderResults(fields, rawData, changes) {
+  window.__lastRender = { fields, data: rawData, changes };
+
+  document.getElementById('footer-controls').style.display = 'flex';
+  const shown = maskReceipt(RECEIPT);
+
+  const hasTimestampChange = changes.some(c => c.type === 'timestamp');
+  const hasEventChange = changes.some(c => c.type === 'event' || c.type === 'array');
+  const isSilent = hasTimestampChange && !hasEventChange;
+
+  let html = '';
+
+  const lastTs = fields.updatedAtTimestamp || fields.updatedAt;
+  const biz = isBizHours(lastTs);
+  html += `
+    <div class="ts-banner">
+      <div>
+        <div class="label">Receipt</div>
+        <div class="value">${shown}</div>
+      </div>
+      <div>
+        <div class="label">Last API Timestamp</div>
+        <div class="value">${formatTs(lastTs)} <span class="tl-badge ${biz ? 'badge-biz' : 'badge-offhrs'}">${biz ? 'Biz Hrs' : 'Off-Hrs'}</span></div>
+      </div>
+      <div>
+        <div class="label">Status</div>
+        <div class="value">${fields.statusText || '—'}</div>
+      </div>
+    </div>
+  `;
+
+  const now = new Date().toISOString();
+  const allSnaps = getAllSnapshots();
+  const timeline = buildTimeline(fields, allSnaps);
+  const silentCount = timeline.filter(e => e.type === 'silent').length;
+
+  const daysElapsed = fields.submissionDate ? daysBetween(fields.submissionDate, now) : '?';
+  const daysSinceUpdate = fields.updatedAtTimestamp ? daysBetween(fields.updatedAtTimestamp, now) : '?';
+
+  const hapEvent = (fields.events || []).find(e => e.code === 'HAP');
+  const ppStart = hapEvent ? hapEvent.timestamp : fields.submissionDate;
+  const ppLabel = hapEvent ? 'PP reset (RFE response)' : 'from filing';
+  const bizDaysPP = ppStart ? bizDaysBetween(ppStart, now) : '?';
+  const isPremium = fields.isPremiumProcessed === true;
+  const premiumLimit = 30;
+  const ppColor = (typeof bizDaysPP === 'number')
+    ? (bizDaysPP > premiumLimit ? 'var(--red)' : bizDaysPP >= 25 ? 'var(--amber)' : 'var(--green)')
+    : 'var(--text)';
+  const ppDeadlineIso = ppStart ? addBizDays(ppStart, premiumLimit) : null;
+  const ppDeadline = ppDeadlineIso ? formatDate(ppDeadlineIso) : '—';
+  const ppNote = isPremium && typeof bizDaysPP === 'number'
+    ? (bizDaysPP > premiumLimit ? ' (over PP window)' : ` / ${premiumLimit}`)
+    : '';
+
+  html += `<div class="summary-grid">
+    <div class="summary-item">
+      <div class="summary-label">Calendar Days</div>
+      <div class="summary-value">${daysElapsed}<span class="unit">total</span></div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">PP Biz Days<br><span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.62rem;">${ppLabel}</span></div>
+      <div class="summary-value" style="color:${ppColor}">${bizDaysPP}<span class="unit">${ppNote}</span></div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">PP Deadline</div>
+      <div class="summary-value" style="font-size:0.95rem;">${ppDeadline}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Days Since Update</div>
+      <div class="summary-value" style="color:${daysSinceUpdate > 7 ? 'var(--amber)' : 'var(--green)'}">${daysSinceUpdate}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Events</div>
+      <div class="summary-value">${(fields.events||[]).length}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Silent Updates</div>
+      <div class="summary-value" style="color:${silentCount > 0 ? 'var(--amber)' : 'var(--text-muted)'}">${silentCount}</div>
+    </div>
+  </div>`;
+
+  if (changes.length > 0) {
+    html += `
+      <div class="diff-card">
+        <h3>${isSilent ? '⚡ Silent update detected' : '✨ Changes since last snapshot'}</h3>
+        <ul>
+          ${changes.map(c => `<li>${c.text}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  } else {
+    const prev = getPrevSnapshot();
+    const lastCheck = prev ? (prev.last_checked || prev.checked_at) : null;
+    html += `<div class="diff-card clean"><h3>✓ No changes since last snapshot${lastCheck ? ' (' + formatTs(lastCheck) + ')' : ''}</h3></div>`;
+  }
+
+  html += `<div class="section">
+    <div class="section-title">Timeline <span class="count">${timeline.length}</span></div>
+    <div class="timeline">`;
+
+  if (timeline.length === 0) {
+    html += `<div class="empty">No events yet</div>`;
+  } else {
+    timeline.forEach((entry, i) => {
+      const isLast = i === timeline.length - 1;
+      const dotClass = entry.type === 'silent' ? 'silent'
+        : entry.type === 'transfer' ? 'silent'
+        : entry.code === 'H008' ? 'changed'
+        : isLast ? 'current' : '';
+      const bizEntry = isBizHours(entry.ts);
+      const bizBadge = entry.type === 'silent'
+        ? `<span class="tl-badge ${bizEntry ? 'badge-biz' : 'badge-offhrs'}">${bizEntry ? 'Biz Hrs' : 'Off-Hrs'}</span>`
+        : '';
+      const typeBadge = entry.type === 'silent' ? '<span class="tl-badge badge-silent">SILENT</span>'
+        : entry.type === 'transfer' ? '<span class="tl-badge badge-transfer">TRANSFER</span>'
+        : `<span class="tl-badge badge-event">${entry.code}</span>`;
+      const desc = entry.desc || EVENT_LABELS[entry.code || ''] || '';
+
+      html += `
+        <div class="tl-entry">
+          <div class="tl-dot ${dotClass}"></div>
+          <div class="tl-content">
+            <div class="tl-header">
+              <span class="tl-ts">${formatTs(entry.ts)}</span>
+              ${typeBadge}
+              ${bizBadge}
+            </div>
+            ${desc ? `<div class="tl-desc">${desc}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+  }
+  html += `</div></div>`;
+
+  const flagKeys = Object.keys(FLAG_INFO).filter(k => fields[k] !== undefined);
+  if (flagKeys.length) {
+    html += `<div class="card"><h3>Key Flags</h3>`;
+    flagKeys.forEach(k => {
+      const v = fields[k];
+      const info = FLAG_INFO[k];
+      const good = isGoodFlag(k, v);
+      html += `<div class="flag-row">
+        <div class="flag-row-top">
+          <span class="flag-row-label">${info.label}</span>
+          <span class="flag-row-value ${good ? 'flag-true' : 'flag-false'}">${v}</span>
+        </div>
+        <div class="flag-row-desc">${info.desc}</div>
+        <div class="flag-row-key">${k}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (fields.events && fields.events.length) {
+    const sortedEvents = [...fields.events].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    html += `<div class="card"><h3>Events (${fields.events.length})</h3>`;
+    sortedEvents.forEach(e => {
+      html += `<div class="event-row">
+        <span class="event-code ${getCodeClass(e.code)}">${e.code}</span>
+        <span class="event-label">${EVENT_LABELS[e.code] || e.description || 'Unknown'}</span>
+        <span class="event-time">${formatTs(e.timestamp)}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  const infoKeys = ['receiptNumber','formType','formName','applicantName','elisChannelType','serviceCenter','submissionDate'];
+  const infoFields = infoKeys.filter(k => fields[k]);
+  if (infoFields.length) {
+    html += `<div class="card"><h3>Case Info</h3>`;
+    infoFields.forEach(k => {
+      html += `<div class="kv-row"><span class="k">${k}</span><span class="v">${typeof fields[k]==='object' ? JSON.stringify(fields[k]) : fields[k]}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  const trackedArrays = ['documents','notices','evidenceRequests','concurrentCases','addendums'];
+  const nonEmpty = trackedArrays.filter(k => fields[k] && fields[k].length > 0);
+  const empty = trackedArrays.filter(k => fields[k] && fields[k].length === 0);
+
+  nonEmpty.forEach(k => {
+    const info = ARRAY_INFO[k];
+    html += `<div class="card amber-accent">
+      <h3>${info.label} (${fields[k].length})</h3>
+      <div class="raw-json" style="max-height:220px;">${JSON.stringify(fields[k], null, 2)}</div>
+    </div>`;
+  });
+
+  if (empty.length) {
+    html += `<div class="card"><h3>Watched Arrays (empty)</h3>`;
+    empty.forEach(k => {
+      const info = ARRAY_INFO[k];
+      html += `<div class="watched-row">
+        <div>
+          <div class="watched-label">${info.label}</div>
+          <div class="watched-desc">${info.empty}</div>
+        </div>
+        <span class="watched-status">empty (0)</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (allSnaps.length > 1) {
+    html += `<details class="collapse-section">
+      <summary>Snapshot history (${allSnaps.length})</summary>`;
+    allSnaps.slice().reverse().forEach(snap => {
+      const inner = unwrap(snap.data);
+      const ts = inner.updatedAtTimestamp || inner.updatedAt || '?';
+      const evts = (inner.events||[]).length;
+      const docs = (inner.documents||[]).length;
+      const notices = (inner.notices||[]).length;
+      const rfes = (inner.evidenceRequests||[]).length;
+      html += `<div class="kv-row">
+        <span class="k">${formatTs(snap.checked_at)}</span>
+        <span class="v" style="font-size:0.72rem;">upd: ${formatTs(ts)} | ev:${evts} d:${docs} n:${notices} r:${rfes}</span>
+      </div>`;
+    });
+    html += `</details>`;
+  }
+
+  html += `<details class="collapse-section">
+    <summary>Raw JSON</summary>
+    <div class="raw-json">${JSON.stringify(rawData, null, 2)}</div>
+  </details>`;
+
+  document.getElementById('results').innerHTML = html;
+  updateReceiptHint();
+}
+
+function buildTimeline(currFields, allSnaps) {
+  const entries = [];
+
+  (currFields.events || []).forEach(e => {
+    entries.push({ ts: e.timestamp, type: 'event', code: e.code, desc: EVENT_LABELS[e.code] || e.description });
+  });
+
+  (currFields.notices || []).forEach(n => {
+    if (n.generationDate) {
+      entries.push({ ts: n.generationDate, type: 'event', code: 'NOTICE', desc: n.actionType || 'Notice generated' });
+    }
+    if (n.appointmentDateTime && n.appointmentDateTime !== n.generationDate) {
+      entries.push({ ts: n.appointmentDateTime, type: 'event', code: 'APPT', desc: 'Appointment scheduled' });
+    }
+  });
+
+  const snaps = allSnaps || getAllSnapshots();
+  for (let i = 1; i < snaps.length; i++) {
+    const prev = unwrap(snaps[i - 1].data);
+    const curr = unwrap(snaps[i].data);
+    const pTs = prev.updatedAtTimestamp || prev.updatedAt;
+    const cTs = curr.updatedAtTimestamp || curr.updatedAt;
+    const pEvents = (prev.events || []).length;
+    const cEvents = (curr.events || []).length;
+
+    if (pTs !== cTs && pEvents === cEvents) {
+      const matchesEvent = (curr.events || []).some(e => {
+        const eTs = e.eventTimestamp || e.createdAtTimestamp || e.createdAt;
+        try { return Math.abs(new Date(eTs) - new Date(cTs)) < 60000; } catch { return false; }
+      });
+      if (!matchesEvent) {
+        entries.push({ ts: cTs, type: 'silent', desc: 'Timestamp changed, no new event' });
+      }
+    }
+
+    if (prev.serviceCenter !== curr.serviceCenter && curr.serviceCenter) {
+      entries.push({ ts: cTs, type: 'transfer', desc: `${prev.serviceCenter || 'none'} → ${curr.serviceCenter}` });
+    }
+  }
+
+  entries.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+  return entries;
+}
+
+// ---------- Actions ----------
+function parseRawJson() {
+  if (!RECEIPT) { setStatus('error', 'Enter your receipt number first'); return; }
+
+  const raw = document.getElementById('raw-input').value.trim();
+  if (!raw) { setStatus('error', 'Paste the JSON response'); return; }
+
+  let data;
+  try { data = JSON.parse(raw); }
+  catch (e) { setStatus('error', 'Invalid JSON: ' + e.message); return; }
+
+  const prev = getPrevSnapshot();
+  const fields = extractFields(data);
+  const changes = diffSnapshots(prev, fields);
+
+  const saved = saveSnapshot(data);
+  setStatus('success', saved ? `Snapshot saved at ${new Date().toLocaleTimeString()}` : 'No changes, touch updated');
+  renderResults(fields, data, changes);
+}
+
+function exportHistory() {
+  const history = getHistory();
+  const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `uscis_tracker_${RECEIPT}_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearCurrentReceipt() {
+  if (!confirm(`Delete all snapshots for ${maskReceipt(RECEIPT)}?`)) return;
+  const history = getHistory();
+  delete history[RECEIPT];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('footer-controls').style.display = 'none';
+  setStatus('success', 'Cleared');
+  updateReceiptHint();
+}
+
+// ---------- Init ----------
+window.addEventListener('DOMContentLoaded', () => {
+  applyPrivacyUI();
+
+  // Restore last used receipt
+  const lastReceipt = localStorage.getItem(LAST_RECEIPT_KEY);
+  if (lastReceipt) {
+    document.getElementById('receipt-input').value = lastReceipt;
+    onReceiptInput();
+  }
+});
+</script>
+</body>
+</html>
