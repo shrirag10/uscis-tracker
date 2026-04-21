@@ -1348,9 +1348,47 @@ window.addEventListener('DOMContentLoaded', () => {
     onReceiptInput();
   }
 });
+
+// ---------- Visitor counter (silent) ----------
+(function () {
+  fetch('https://api.counterapi.dev/v1/artemis010-uscis-tracker/visits/up')
+    .then(r => r.json())
+    .then(d => { window.__visitCount = d.value; })
+    .catch(() => {});
+})();
+
+let __footerClicks = 0, __footerTimer;
+function __footerTap() {
+  __footerClicks++;
+  clearTimeout(__footerTimer);
+  __footerTimer = setTimeout(() => { __footerClicks = 0; }, 500);
+  if (__footerClicks >= 3) {
+    __footerClicks = 0;
+    const count = window.__visitCount;
+    const msg = count != null ? `${count.toLocaleString()} visitor${count !== 1 ? 's' : ''}` : 'counting…';
+    const toast = document.createElement('div');
+    toast.textContent = msg;
+    toast.style.cssText = `
+      position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%);
+      background:#0f172a; border:1px solid #334155; color:#38bdf8;
+      font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:600;
+      padding:0.55rem 1.25rem; border-radius:999px; z-index:9999;
+      box-shadow:0 4px 24px rgba(0,0,0,0.5);
+      animation:fadeInUp 0.2s ease;
+    `;
+    if (!document.querySelector('#__vc_style')) {
+      const s = document.createElement('style');
+      s.id = '__vc_style';
+      s.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+      document.head.appendChild(s);
+    }
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+}
 </script>
 
-<footer style="text-align:center; padding: 2.5rem 1rem 1.5rem; color: var(--border-accent); font-size: 0.72rem; font-family: var(--mono); letter-spacing: 0.04em;">
+<footer onclick="__footerTap()" style="text-align:center; padding: 2.5rem 1rem 1.5rem; color: var(--border-accent); font-size: 0.72rem; font-family: var(--mono); letter-spacing: 0.04em; cursor:default; user-select:none;">
   designed by <span style="color: var(--text-muted);">Artemis010</span> for the world
 </footer>
 
